@@ -9,6 +9,7 @@ GREY = (100, 100, 100)
 BLACK = (0, 0, 0)
 
 LOCAL_DIR = os.path.dirname(__file__)
+PUZZLE_BORDER_SIZE = 0.165
 
 big_font = pygame.font.Font(os.path.join(LOCAL_DIR, 'Assets/pixel.ttf'), 70)
 small_font = pygame.font.Font(os.path.join(LOCAL_DIR, 'Assets/pixel.ttf'), 40)
@@ -19,12 +20,3 @@ opposites = {
     'left': 'right',
     'right': 'left'
 }
-
-directions = {
-    0: 'up',
-    1: 'down',
-    2: 'left',
-    3: 'right'
-}
-
-MOVES_LOOK_AHEAD = 12
