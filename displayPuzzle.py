@@ -3,165 +3,226 @@ from puzzle import Puzzle
 import pygame, random
 
 class DisplayPuzzle(Puzzle):
-    def __init__(self, difficulty, size, window, position):
-        super().__init__(difficulty)
-        self.size = size
-        self.window = window
-        self.position = position
+    def __init__(self, difficulty: int, size: int, window: pygame.display, position: tuple[int, int], mode: str, scramble=True) -> None:
+        super().__init__(difficulty, scramble)
+        self.__size = size
+        self.__window = window
+        self.__position = position
+        self.__moves = 0
+        self.__mode = mode
+        self.__race_finished = False
 
-        self.previous_demo_move = None
+        self.__previous_demo_move = None
+        self.__creation_time = pygame.time.get_ticks()
+        self.__checked_against_best_time = False
 
-        self.animating = False
-        self.animation_frames = None
-        self.animating_piece_coordinate = None
-        self.animating_piece = None
-        self.animating_direction = None
-        self.accumulated_movement = 0
+        self.__animating = False
+        self.__animation_frames = None
+        self.__animating_piece_coordinate = None
+        self.__animating_piece = None
+        self.__animating_direction = None
+        self.__accumulated_movement = 0
 
-        self.tile_size = (1 - PUZZLE_BORDER_SIZE) * self.size / self.difficulty
-        self.tile_offset = PUZZLE_BORDER_SIZE / 2 * self.size
-        self.textures = {
-            1: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile1.png')), (self.tile_size, self.tile_size)),
-            2: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile2.png')), (self.tile_size, self.tile_size)),
-            3: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile3.png')), (self.tile_size, self.tile_size)),
-            4: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile4.png')), (self.tile_size, self.tile_size)),
-            5: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile5.png')), (self.tile_size, self.tile_size)),
-            6: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile6.png')), (self.tile_size, self.tile_size)),
-            7: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile7.png')), (self.tile_size, self.tile_size)),
-            8: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile8.png')), (self.tile_size, self.tile_size)),
-            9: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile9.png')), (self.tile_size, self.tile_size)),
-            10: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile10.png')), (self.tile_size, self.tile_size)),
-            11: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile11.png')), (self.tile_size, self.tile_size)),
-            12: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile12.png')), (self.tile_size, self.tile_size)),
-            13: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile13.png')), (self.tile_size, self.tile_size)),
-            14: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile14.png')), (self.tile_size, self.tile_size)),
-            15: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile15.png')), (self.tile_size, self.tile_size)),
-            16: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile16.png')), (self.tile_size, self.tile_size)),
-            17: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile17.png')), (self.tile_size, self.tile_size)),
-            18: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile18.png')), (self.tile_size, self.tile_size)),
-            19: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile19.png')), (self.tile_size, self.tile_size)),
-            20: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile20.png')), (self.tile_size, self.tile_size)),
-            21: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile21.png')), (self.tile_size, self.tile_size)),
-            22: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile22.png')), (self.tile_size, self.tile_size)),
-            23: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile23.png')), (self.tile_size, self.tile_size)),
-            24: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile24.png')), (self.tile_size, self.tile_size)),
-            'board': pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/boardBackground.png')), (self.size, self.size)),
+        self.__tile_size = (1 - PUZZLE_BORDER_SIZE) * self.__size / self._difficulty
+        self.__tile_offset = PUZZLE_BORDER_SIZE / 2 * self.__size
+        self.__textures = {
+            1: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile1.png')), (self.__tile_size, self.__tile_size)),
+            2: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile2.png')), (self.__tile_size, self.__tile_size)),
+            3: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile3.png')), (self.__tile_size, self.__tile_size)),
+            4: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile4.png')), (self.__tile_size, self.__tile_size)),
+            5: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile5.png')), (self.__tile_size, self.__tile_size)),
+            6: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile6.png')), (self.__tile_size, self.__tile_size)),
+            7: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile7.png')), (self.__tile_size, self.__tile_size)),
+            8: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile8.png')), (self.__tile_size, self.__tile_size)),
+            9: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile9.png')), (self.__tile_size, self.__tile_size)),
+            10: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile10.png')), (self.__tile_size, self.__tile_size)),
+            11: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile11.png')), (self.__tile_size, self.__tile_size)),
+            12: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile12.png')), (self.__tile_size, self.__tile_size)),
+            13: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile13.png')), (self.__tile_size, self.__tile_size)),
+            14: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile14.png')), (self.__tile_size, self.__tile_size)),
+            15: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile15.png')), (self.__tile_size, self.__tile_size)),
+            16: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile16.png')), (self.__tile_size, self.__tile_size)),
+            17: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile17.png')), (self.__tile_size, self.__tile_size)),
+            18: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile18.png')), (self.__tile_size, self.__tile_size)),
+            19: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile19.png')), (self.__tile_size, self.__tile_size)),
+            20: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile20.png')), (self.__tile_size, self.__tile_size)),
+            21: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile21.png')), (self.__tile_size, self.__tile_size)),
+            22: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile22.png')), (self.__tile_size, self.__tile_size)),
+            23: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile23.png')), (self.__tile_size, self.__tile_size)),
+            24: pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/Tile24.png')), (self.__tile_size, self.__tile_size)),
+            'board': pygame.transform.scale(pygame.image.load(os.path.join(LOCAL_DIR, 'Assets/boardBackground.png')), (self.__size, self.__size)),
         }
 
-        self.finished_backgrond = pygame.Surface((self.size, self.size))
-        self.finished_backgrond.set_alpha(150)
-        self.finished_backgrond.fill(BLACK)
-        self.finished_msg = big_font.render('Puzzle Solved!', False, WHITE)
-        self.finished_msg_rect = self.finished_msg.get_rect(center=(self.position[0] + self.size/2, self.position[1] + self.size/2 - 25))
-        self.won_msg = big_font.render('You Won!', False, WHITE)
-        self.won_msg_rect = self.won_msg.get_rect(center=(self.position[0] + self.size/2, self.position[1] + self.size/2 - 25))
-        self.lost_msg = big_font.render('Tough Luck!', False, WHITE)
-        self.lost_msg_rect = self.lost_msg.get_rect(center=(self.position[0] + self.size/2, self.position[1] + self.size/2 - 25))
-        self.vs_restart_msg = small_font.render('click on me to start another race!', False, WHITE)
-        self.vs_restart_msg_rect = self.vs_restart_msg.get_rect(center=(self.position[0] + self.size/2, self.position[1] + self.size/2 + 25))
-        self.restart_msg = small_font.render('click on me to restart the game!', False, WHITE)
-        self.restart_msg_rect = self.restart_msg.get_rect(center=(self.position[0] + self.size/2, self.position[1] + self.size/2 + 25))
+        self.__finished_backgrond = pygame.Surface((self.__size, self.__size))
+        self.__board_rect = self.__finished_backgrond.get_rect()
+        self.__finished_backgrond.set_alpha(150)
+        self.__finished_backgrond.fill(BLACK)
+        self.__finished_msg = big_font.render('Puzzle Solved!', False, WHITE)
+        self.__finished_msg_rect = self.__finished_msg.get_rect(center=(self.__position[0] + self.__size/2, self.__position[1] + self.__size/2 - 25))
+        self.__restart_msg = small_font.render('click on me to restart the game!', False, WHITE)
+        self.__restart_msg_rect = self.__restart_msg.get_rect(center=(self.__position[0] + self.__size/2, self.__position[1] + self.__size/2 + 25))
+        self.__won_msg = medium_font.render('You Won!', False, WHITE)
+        self.__won_msg_rect = self.__won_msg.get_rect(center=(self.__position[0] + self.__size/2, self.__position[1] + self.__size/2 - 25))
+        self.__lost_msg = medium_font.render('Tough Luck!', False, WHITE)
+        self.__lost_msg_rect = self.__lost_msg.get_rect(center=(self.__position[0] + self.__size/2, self.__position[1] + self.__size/2 - 25))
+        self.__two_player_restart_msg = small_font.render('click the restart button to restart!', False, WHITE)
+        self.__two_player_restart_msg_rect = self.__two_player_restart_msg.get_rect(center=(self.__position[0] + self.__size/2, self.__position[1] + self.__size/2 + 25))
+        self.__tutorial_finished_msg = big_font.render('Congratulations!', False, WHITE)
+        self.__tutorial_finished_msg_rect = self.__tutorial_finished_msg.get_rect(center=(self.__position[0] + self.__size/2, self.__position[1] + self.__size/2 - 25))
+        self.__tutorial_solved_msg = small_font.render('You solved the puzzle!', False, WHITE)
+        self.__tutorial_solved_msg_rect = self.__tutorial_solved_msg.get_rect(center=(self.__position[0] + self.__size/2, self.__position[1] + self.__size/2 + 25))
 
-    def displayMove(self, direction):
+    def displayMove(self, direction: str) -> bool:
         direction_moved, (row, column) = self.move(direction)
         if not direction_moved:
             return False
 
         self.isSolved()
+        self.__moves += 1
         if direction == 'up':            
-            self.animating_piece_coordinate = [self.position[0] + self.tile_offset + column * self.tile_size, self.position[1] + self.tile_offset + (row + 1) * self.tile_size]
-            self.animating_direction = (0, -1)
-            self.animating_piece = self.state[row][column]
+            self.__animating_piece_coordinate = [self.__position[0] + self.__tile_offset + column * self.__tile_size, self.__position[1] + self.__tile_offset + (row + 1) * self.__tile_size]
+            self.__animating_direction = (0, -1)
+            self.__animating_piece = self._state[row][column]
             return True
 
         elif direction == 'down':
-            self.animating_piece_coordinate = [self.position[0] + self.tile_offset + column * self.tile_size, self.position[1] + self.tile_offset + (row - 1) * self.tile_size]
-            self.animating_direction = (0, 1)
-            self.animating_piece = self.state[row][column]
+            self.__animating_piece_coordinate = [self.__position[0] + self.__tile_offset + column * self.__tile_size, self.__position[1] + self.__tile_offset + (row - 1) * self.__tile_size]
+            self.__animating_direction = (0, 1)
+            self.__animating_piece = self._state[row][column]
             return True
 
         elif direction == 'left':  
-            self.animating_piece_coordinate = [self.position[0] + self.tile_offset + (column + 1) * self.tile_size, self.position[1] + self.tile_offset + row * self.tile_size]
-            self.animating_direction = (-1, 0)
-            self.animating_piece = self.state[row][column]
+            self.__animating_piece_coordinate = [self.__position[0] + self.__tile_offset + (column + 1) * self.__tile_size, self.__position[1] + self.__tile_offset + row * self.__tile_size]
+            self.__animating_direction = (-1, 0)
+            self.__animating_piece = self._state[row][column]
             return True
 
         else: #right
-            self.animating_piece_coordinate = [self.position[0] + self.tile_offset + (column - 1) * self.tile_size, self.position[1] + self.tile_offset + row * self.tile_size]
-            self.animating_direction = (1, 0)
-            self.animating_piece = self.state[row][column]
+            self.__animating_piece_coordinate = [self.__position[0] + self.__tile_offset + (column - 1) * self.__tile_size, self.__position[1] + self.__tile_offset + row * self.__tile_size]
+            self.__animating_direction = (1, 0)
+            self.__animating_piece = self._state[row][column]
             return True
 
-    def draw(self):
-        self.window.blit(self.textures['board'], self.position)
-        for row in range(self.difficulty):
-            for column in range(self.difficulty):
-                element = self.state[row][column]
+    def draw(self) -> None:
+        self.__window.blit(self.__textures['board'], self.__position)
+        for row in range(self._difficulty):
+            for column in range(self._difficulty):
+                element = self._state[row][column]
                 if element == 0:
                     continue
-                texture = self.textures[element]
-                coordinate = (self.position[0] + self.tile_offset + column * self.tile_size, self.position[1] + self.tile_offset + row * self.tile_size)
-                self.window.blit(texture, coordinate)
+                texture = self.__textures[element]
+                coordinate = (self.__position[0] + self.__tile_offset + column * self.__tile_size, self.__position[1] + self.__tile_offset + row * self.__tile_size)
+                self.__window.blit(texture, coordinate)
 
-    def animate(self):
-        self.window.blit(self.textures['board'], self.position)
-        for row in range(self.difficulty):
-            for column in range(self.difficulty):
-                element = self.state[row][column]
-                if element == 0 or element == self.animating_piece:
+    def animate(self) -> None:
+        self.__window.blit(self.__textures['board'], self.__position)
+        for row in range(self._difficulty):
+            for column in range(self._difficulty):
+                element = self._state[row][column]
+                if element == 0 or element == self.__animating_piece:
                     continue
-                texture = self.textures[self.state[row][column]]
-                coordinate = (self.position[0] + self.tile_offset + column * self.tile_size, self.position[1]+ self.tile_offset + row * self.tile_size)
-                self.window.blit(texture, coordinate)
+                texture = self.__textures[self._state[row][column]]
+                coordinate = (self.__position[0] + self.__tile_offset + column * self.__tile_size, self.__position[1]+ self.__tile_offset + row * self.__tile_size)
+                self.__window.blit(texture, coordinate)
 
-        movement = self.tile_size / self.animation_frames
-        self.accumulated_movement += movement
-        if self.accumulated_movement < self.tile_size:
-            self.animating_piece_coordinate = [self.animating_piece_coordinate[0] + movement * self.animating_direction[0], 
-                                               self.animating_piece_coordinate[1] + movement * self.animating_direction[1]]
-            self.window.blit(self.textures[self.animating_piece], self.animating_piece_coordinate)
+        movement = self.__tile_size / self.__animation_frames
+        self.__accumulated_movement += movement
+        if self.__accumulated_movement < self.__tile_size:
+            self.__animating_piece_coordinate = [self.__animating_piece_coordinate[0] + movement * self.__animating_direction[0], 
+                                               self.__animating_piece_coordinate[1] + movement * self.__animating_direction[1]]
+            self.__window.blit(self.__textures[self.__animating_piece], self.__animating_piece_coordinate)
         else:
             self.draw()
-            self.animating = False
+            self.__animating = False
 
-    def update(self, direction, animation_frames):
-        if direction != None:
-            if not self.animating:
-                moved = self.displayMove(direction)
-                if not moved or animation_frames == 0:
-                    self.draw()
-                    return
-                
-                self.animating = True
-                self.accumulated_movement = 0
-                self.animation_frames = animation_frames
-
-            self.animate()
+    def update(self, direction: str, animation_frames: int) -> None:
+        if self.__mode == 'time-trial' and self._game_won and not self.__animating:
+            self.draw()
+            self.displayEndCard()
+        elif self.__mode == 'two-players' and self.__race_finished:
+            self.draw()
+            self.displayRaceEndCard()
+        elif self.__mode == 'tutorial' and self._game_won and not self.__animating:
+            self.draw()
+            self.displayTutorialEndCard()
+            
         else:
-            self.draw() if not self.animating else self.animate()
+            if direction != None:
+                if not self.__animating:
+                    moved = self.displayMove(direction)
+                    if not moved or animation_frames == 0:
+                        self.draw()
+                        return
+                    
+                    self.__animating = True
+                    self.__accumulated_movement = 0
+                    self.__animation_frames = animation_frames
 
-    def getDemoMove(self):
+                self.animate()
+            else:
+                self.draw() if not self.__animating else self.animate()
+
+    def getDemoMove(self) -> str:
         choices = []
         flag = False
-        for row in range(self.difficulty):
+        for row in range(self._difficulty):
             if flag:
                 break
-            for column in range(self.difficulty):
-                if self.state[row][column] == 0:
+            for column in range(self._difficulty):
+                if self._state[row][column] == 0:
                     flag = True
-                    if row != self.difficulty - 1 and self.previous_demo_move != opposites['up']: 
+                    if row != self._difficulty - 1 and self.__previous_demo_move != opposites['up']: 
                         choices.append('up')
                     
-                    if row != 0 and self.previous_demo_move != opposites["down"]:
+                    if row != 0 and self.__previous_demo_move != opposites["down"]:
                         choices.append('down')
 
-                    if column != self.difficulty - 1 and self.previous_demo_move != opposites['left']:
+                    if column != self._difficulty - 1 and self.__previous_demo_move != opposites['left']:
                         choices.append('left')
 
-                    if column != 0 and self.previous_demo_move != opposites['right']:
+                    if column != 0 and self.__previous_demo_move != opposites['right']:
                         choices.append('right')
                     break
 
         new_demo_move = random.choice(choices)
-        self.previous_demo_move = new_demo_move
+        self.__previous_demo_move = new_demo_move
         return new_demo_move
+    
+    def displayEndCard(self) -> None:
+        self.__window.blit(self.__finished_backgrond, self.__position)
+        self.__window.blit(self.__finished_msg, self.__finished_msg_rect)
+        self.__window.blit(self.__restart_msg, self.__restart_msg_rect)
+
+    def displayRaceEndCard(self) -> None:
+        self.__window.blit(self.__finished_backgrond, self.__position)
+        if self._game_won:
+            self.__window.blit(self.__won_msg, self.__won_msg_rect)
+            self.__window.blit(self.__two_player_restart_msg, self.__two_player_restart_msg_rect)
+        else:
+            self.__window.blit(self.__lost_msg, self.__lost_msg_rect)
+
+    def displayTutorialEndCard(self) -> None:
+        self.__window.blit(self.__finished_backgrond, self.__position)
+        self.__window.blit(self.__tutorial_finished_msg, self.__tutorial_finished_msg_rect)
+        self.__window.blit(self.__tutorial_solved_msg, self.__tutorial_solved_msg_rect)
+
+    def getCreationTime(self) -> int:
+        return self.__creation_time
+    
+    def getCheckedAgainstBestTime(self) -> bool:
+        return self.__checked_against_best_time
+    
+    def setCheckedAgainstBestTime(self, checked_against_best_time: bool) -> None:
+        self.__checked_against_best_time = checked_against_best_time
+
+    def getBoardRect(self) -> pygame.Rect:
+        return self.__board_rect
+    
+    def setRaceFinished(self, race_finished: bool) -> None:
+        self.__race_finished = race_finished
+
+    def getMoves(self) -> int:
+        return self.__moves
+    
+    def getAnimating(self) -> bool:
+        return self.__animating
