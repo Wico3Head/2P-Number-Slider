@@ -3,6 +3,7 @@ from setting import *
 
 class Puzzle:
     def __init__(self, difficulty: int, scramble: bool) -> None:
+        #initialises attributes
         self._game_won = False
         self._difficulty = difficulty
 
@@ -19,7 +20,8 @@ class Puzzle:
             for i in range(1000):
                 self.move(random.choice(['up', 'down', 'left', 'right']))
 
-    def move(self, direction: str) -> tuple[str, tuple[int, int]]:
+    def move(self, direction: str) -> tuple[str, tuple[int]]:
+        # moves the puzzle in the intended direction
         if not direction:
             return None, (None, None)
         
@@ -56,6 +58,7 @@ class Puzzle:
                         return 'right', (row, column)
 
     def __str__(self) -> None:
+        #used for debug purposes
         string = ""
         for row in self._state:
             for num in row:
@@ -67,6 +70,7 @@ class Puzzle:
         return string
 
     def isSolved(self) -> bool:
+        # check if the puzzle is solved or not
         counter = 1
         for row in range(self._difficulty):
             for column in range(self._difficulty):
@@ -80,12 +84,21 @@ class Puzzle:
                 
                 counter += 1
 
-    
+    # methods used in tutorial mode
     def layerOnePatternMade(self) -> bool:
         return self._state[0][0] == 2 and self._state[0][1] == 3 and self._state[1][0] == 1
     
     def firstLayerSolved(self) -> bool:
-        return self._state[0][0] == 1 and self._state[0][1] == 2 and self._state[0][2] == 3
+        counter = 1
+        for row in range(self._difficulty):
+            for column in range(self._difficulty):
+                element = self._state[row][column]
+                if element != counter:
+                    return False
+                if counter == self._difficulty:
+                    return True
+                
+                counter += 1
     
     def secondLayerSolved(self) -> bool:
         counter = 1
@@ -94,11 +107,12 @@ class Puzzle:
                 element = self._state[row][column]
                 if element != counter:
                     return False
-                if counter == 6:
+                if counter == self._difficulty * 2:
                     return True
                 
                 counter += 1
 
+    # getters and setters
     def getGameWon(self) -> bool:
         return self._game_won
     

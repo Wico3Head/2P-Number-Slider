@@ -3,7 +3,8 @@ from puzzle import Puzzle
 import pygame, random
 
 class DisplayPuzzle(Puzzle):
-    def __init__(self, difficulty: int, size: int, window: pygame.display, position: tuple[int, int], mode: str, scramble=True) -> None:
+    def __init__(self, difficulty: int, size: int, window: pygame.display, position: tuple[int, int], mode: str, scramble=True, ai=False) -> None:
+        # initialise attributes
         super().__init__(difficulty, scramble)
         self.__size = size
         self.__window = window
@@ -11,13 +12,13 @@ class DisplayPuzzle(Puzzle):
         self.__moves = 0
         self.__mode = mode
         self.__race_finished = False
+        self.__is_ai = ai
 
         self.__previous_demo_move = None
         self.__creation_time = pygame.time.get_ticks()
         self.__checked_against_best_time = False
 
         self.__animating = False
-        self.__animation_frames = None
         self.__animating_piece_coordinate = None
         self.__animating_piece = None
         self.__animating_direction = None
@@ -73,10 +74,12 @@ class DisplayPuzzle(Puzzle):
         self.__tutorial_solved_msg_rect = self.__tutorial_solved_msg.get_rect(center=(self.__position[0] + self.__size/2, self.__position[1] + self.__size/2 + 25))
 
     def displayMove(self, direction: str) -> bool:
+        # move the puzzle in the intended direction
         direction_moved, (row, column) = self.move(direction)
         if not direction_moved:
             return False
 
+        # check whether there needs to be an animation
         self.isSolved()
         self.__moves += 1
         if direction == 'up':            
@@ -104,6 +107,7 @@ class DisplayPuzzle(Puzzle):
             return True
 
     def draw(self) -> None:
+        # draws the state of the puzzle on screen
         self.__window.blit(self.__textures['board'], self.__position)
         for row in range(self._difficulty):
             for column in range(self._difficulty):
@@ -114,7 +118,8 @@ class DisplayPuzzle(Puzzle):
                 coordinate = (self.__position[0] + self.__tile_offset + column * self.__tile_size, self.__position[1] + self.__tile_offset + row * self.__tile_size)
                 self.__window.blit(texture, coordinate)
 
-    def animate(self) -> None:
+    def animate(self, deltaTime: int) -> None:
+        # animates the new frame of the animation
         self.__window.blit(self.__textures['board'], self.__position)
         for row in range(self._difficulty):
             for column in range(self._difficulty):
@@ -125,7 +130,7 @@ class DisplayPuzzle(Puzzle):
                 coordinate = (self.__position[0] + self.__tile_offset + column * self.__tile_size, self.__position[1]+ self.__tile_offset + row * self.__tile_size)
                 self.__window.blit(texture, coordinate)
 
-        movement = self.__tile_size / self.__animation_frames
+        movement = self.__tile_size * deltaTime / ANIMATION_TIME
         self.__accumulated_movement += movement
         if self.__accumulated_movement < self.__tile_size:
             self.__animating_piece_coordinate = [self.__animating_piece_coordinate[0] + movement * self.__animating_direction[0], 
@@ -135,7 +140,8 @@ class DisplayPuzzle(Puzzle):
             self.draw()
             self.__animating = False
 
-    def update(self, direction: str, animation_frames: int) -> None:
+    def update(self, direction: str, deltaTime: int) -> None:
+        # handles whether to show victory screens, draw or animate the puzzle
         if self.__mode == 'time-trial' and self._game_won and not self.__animating:
             self.draw()
             self.displayEndCard()
@@ -145,24 +151,27 @@ class DisplayPuzzle(Puzzle):
         elif self.__mode == 'tutorial' and self._game_won and not self.__animating:
             self.draw()
             self.displayTutorialEndCard()
+        elif self.__mode == 'versus-ai' and self.__race_finished:
+            self.draw()
+            self.displayVersusAiEndCard()
             
         else:
             if direction != None:
                 if not self.__animating:
                     moved = self.displayMove(direction)
-                    if not moved or animation_frames == 0:
+                    if not moved:
                         self.draw()
                         return
                     
                     self.__animating = True
                     self.__accumulated_movement = 0
-                    self.__animation_frames = animation_frames
 
-                self.animate()
+                self.animate(deltaTime)
             else:
-                self.draw() if not self.__animating else self.animate()
+                self.draw() if not self.__animating else self.animate(deltaTime)
 
     def getDemoMove(self) -> str:
+        # return a move for the demo to play
         choices = []
         flag = False
         for row in range(self._difficulty):
@@ -189,11 +198,13 @@ class DisplayPuzzle(Puzzle):
         return new_demo_move
     
     def displayEndCard(self) -> None:
+        # victory screen for time trial mode
         self.__window.blit(self.__finished_backgrond, self.__position)
         self.__window.blit(self.__finished_msg, self.__finished_msg_rect)
         self.__window.blit(self.__restart_msg, self.__restart_msg_rect)
 
     def displayRaceEndCard(self) -> None:
+        # victory/lost screen for two players mode
         self.__window.blit(self.__finished_backgrond, self.__position)
         if self._game_won:
             self.__window.blit(self.__won_msg, self.__won_msg_rect)
@@ -202,10 +213,22 @@ class DisplayPuzzle(Puzzle):
             self.__window.blit(self.__lost_msg, self.__lost_msg_rect)
 
     def displayTutorialEndCard(self) -> None:
+        # victory screen for the tutorial mode
         self.__window.blit(self.__finished_backgrond, self.__position)
         self.__window.blit(self.__tutorial_finished_msg, self.__tutorial_finished_msg_rect)
         self.__window.blit(self.__tutorial_solved_msg, self.__tutorial_solved_msg_rect)
 
+    def displayVersusAiEndCard(self) -> None:
+        # victory/lost screen for the versus A.I. mode
+        self.__window.blit(self.__finished_backgrond, self.__position)
+        if not self.__is_ai:
+            if self._game_won:
+                self.__window.blit(self.__won_msg, self.__won_msg_rect)
+            else:
+                self.__window.blit(self.__lost_msg, self.__lost_msg_rect)
+            self.__window.blit(self.__two_player_restart_msg, self.__two_player_restart_msg_rect)
+
+    # getters and setters
     def getCreationTime(self) -> int:
         return self.__creation_time
     
